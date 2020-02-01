@@ -1,0 +1,177 @@
+﻿
+<div class="container text-center">
+    <h4>Time: @this.gameTime.ToString()</h4>
+    <br />
+    @for (int i = 0; i < CODE_ROWS; i++)
+    {
+        <div class="row">
+            @for (int j = 0; j < CODE_CELLS; j++)
+            {
+                int current_i = i;
+                int current_j = j;
+
+                <div class="col">
+                    <select disabled="@IsRowDisabled(i)" class="circle" style="background:@playerBoard[i,j]" @bind="@playerBoard[current_i,current_j]">
+                        <!--Default color, if user want to cler alredy selected color-->
+                        <option value="@this.defaultColor" style="background:@this.defaultColor"></option>
+
+                        @foreach (var color in this.colors)
+                        {
+                            <option value="@color" style="background:@color"></option>
+                        }
+
+                    </select>
+                </div>
+            }
+
+            <div class="col-3">
+                @if (this.activeRow == i)
+                {
+                    <button class="btn btn-primary" @onclick="@OnCheckCode">Check</button>
+                }
+            </div>
+
+            @for (int j = 0; j < CODE_CELLS; j++)
+            {
+                <div class="col">
+                    <p class="circle" style="background:@resultBoard[i,j]" />
+                </div>
+            }
+        </div>
+    }
+
+</div>
+
+@code{
+
+    [Parameter]
+    public EventCallback OnGameOver { get; set; }
+
+    private const int CODE_ROWS = 10;
+    private const int CODE_CELLS = 5;
+
+    private readonly string[] colors = new string[] { "red", "yellow", "blue", "green", "magenta", "purple", "pink", "orange" };
+
+    private readonly string colorIfCellExistInCode = "yellow";
+    private readonly string colorIfCellIsMatched = "red";
+    private readonly string defaultColor = "white";
+
+    private string[,] playerBoard = new string[CODE_ROWS, CODE_CELLS];
+
+    private string[,] resultBoard = new string[CODE_ROWS, CODE_CELLS];
+
+    private string[] codeToBreak = new string[CODE_CELLS];
+
+    private int activeRow = 0;
+
+    private Timer timer = new Timer(1000);
+    private TimeSpan gameTime;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        for (int i = 0; i < CODE_ROWS; i++)
+        {
+            for (int j = 0; j < CODE_CELLS; j++)
+            {
+                this.playerBoard[i, j] = defaultColor;
+                this.resultBoard[i, j] = defaultColor;
+            }
+        }
+
+        codeToBreak = this.ShuffleCollecion(this.colors).Take(CODE_CELLS).ToArray();
+
+        timer.Elapsed += this.OnTimerElapsed;
+        timer.AutoReset = true;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+
+        if (firstRender)
+        {
+            timer.Start();
+        }
+    }
+
+    private void GameOver(bool isFailure)
+    {
+        this.timer.Stop();
+
+        var result = new GameResult
+        {
+            IsFailure = isFailure,
+            Moves = this.activeRow,
+            CorrectResult = this.codeToBreak,
+            Answer = Enumerable.Range(0, this.playerBoard.GetLength(1))
+                                .Select(x => this.playerBoard[this.activeRow, x])
+                                .ToArray(),
+            GameTime = this.gameTime
+        };
+
+        this.OnGameOver.InvokeAsync(result);
+    }
+
+    private void OnCheckCode()
+    {
+        int matchedCells = 0;
+        string[] result = new string[CODE_CELLS];
+
+        for (int i = 0; i < CODE_CELLS; i++)
+        {
+            var cellColor = this.playerBoard[this.activeRow, i];
+
+            if (cellColor == this.codeToBreak[i])
+            {
+                result[i] = this.colorIfCellIsMatched;
+                matchedCells++;
+                continue;
+            }
+            else if (this.codeToBreak.Any(x => x == cellColor))
+            {
+                result[i] = this.colorIfCellExistInCode;
+                continue;
+            }
+
+            result[i] = defaultColor;
+        }
+
+        if (matchedCells == 5)
+        {
+            this.GameOver(false);
+        }
+        else if (this.activeRow == CODE_ROWS - 1)
+        {
+            this.GameOver(true);
+        }
+        else
+        {
+            var shuffled = this.ShuffleCollecion(result).ToArray();
+
+            for (int i = 0; i < CODE_CELLS; i++)
+            {
+                this.resultBoard[this.activeRow, i] = shuffled[i];
+            }
+
+            this.activeRow++;
+        }
+    }
+
+    private bool IsRowDisabled(int row)
+    {
+        return this.activeRow != row;
+    }
+
+    private IEnumerable<T> ShuffleCollecion<T>(IEnumerable<T> collection)
+    {
+        return collection.OrderBy(x => new Random().Next()).ToList();
+    }
+
+    private void OnTimerElapsed(Object source, ElapsedEventArgs e)
+    {
+        this.gameTime = TimeSpan.FromMilliseconds(this.gameTime.TotalMilliseconds + 1000);
+        this.StateHasChanged();
+    }
+}

@@ -1,0 +1,44 @@
+﻿<div class="text-center">
+    <div>
+        @if (this.GameResult.IsFailure)
+        {
+            <h1>You lose!!!</h1>
+            <h3>Correct result</h3>
+            @foreach (var item in this.GameResult.CorrectResult)
+            {
+                <label class="circle" style="background:@item" />
+            }
+            <br />
+            <h3>Your last answer</h3>
+            @foreach (var item in this.GameResult.Answer)
+            {
+                <label class="circle" style="background:@item" />
+            }
+        }
+        else
+        {
+            <h1>You win!!!</h1>
+            <h6>Your result: @string.Format("Moves: {0}, Time: {1}", this.GameResult.Moves, this.GameResult.GameTime)</h6>
+            <img src="/images/cup.jpg" />
+        }
+    </div>
+
+    <div>
+        <button class="btn btn-primary" @onclick="@NewGame">New Game</button>
+    </div>
+</div>
+
+
+@code
+{
+    [Parameter]
+    public GameResult GameResult { get; set; }
+
+    [Parameter]
+    public EventCallback OnNewGame { get; set; }
+
+    private async void NewGame()
+    {
+        await this.OnNewGame.InvokeAsync(null);
+    }
+}

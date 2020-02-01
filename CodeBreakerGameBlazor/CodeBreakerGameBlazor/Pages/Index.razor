@@ -1,7 +1,27 @@
 ﻿@page "/"
 
-<h1>Hello, world!</h1>
+@if(this.isGameEnded)
+{
+    <GameResults OnNewGame="@NewGame" GameResult="this.gameResult"/>
+}
+else
+{
+    <GameBoard OnGameOver="@GameOver"/>
+}
 
-Welcome to your new app.
+@code
+{
+    private bool isGameEnded;
+    private GameResult gameResult;
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+    private void GameOver(object gameResult)
+    {
+        this.gameResult = gameResult as GameResult;
+        this.isGameEnded = true;
+    }
+
+    private void NewGame()
+    {
+        this.isGameEnded = false;
+    }
+}

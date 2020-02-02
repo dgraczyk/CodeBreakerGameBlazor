@@ -1,2 +1,6 @@
 # CodeBreakerGameBlazor
-The code breaker game 
+Implementation of the board game Code Breaker with Blazor (client-side). 
+
+This is just a learning project :)
+
+![screenshot](./screenshots/codebreaker.png)
